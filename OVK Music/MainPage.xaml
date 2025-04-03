@@ -1,0 +1,109 @@
+﻿<Page
+    x:Class="OVK_Music.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <Grid.Resources>
+            <ResourceDictionary>
+                <ResourceDictionary.ThemeDictionaries>
+                    <!-- Стили для тёмной темы -->
+                    <ResourceDictionary x:Key="Dark">
+                        <SolidColorBrush x:Key="PageBackgroundBrush" Color="#202020"/>
+                        <SolidColorBrush x:Key="TextBrush" Color="#FFFFFF"/>
+                        <SolidColorBrush x:Key="BorderBrush" Color="#404040"/>
+                    </ResourceDictionary>
+                </ResourceDictionary.ThemeDictionaries>
+            </ResourceDictionary>
+        </Grid.Resources>
+
+        <Grid Background="{ThemeResource PageBackgroundBrush}">
+            <!-- Индикатор загрузки -->
+            <ProgressBar x:Name="LoadingProgressBar" 
+                        IsIndeterminate="True" 
+                        VerticalAlignment="Top" 
+                        Visibility="Collapsed"/>
+
+            <StackPanel VerticalAlignment="Center" 
+                       HorizontalAlignment="Center" 
+                       Width="300">
+
+                <!-- Логотип приложения -->
+                <Image x:Name="AppLogo" 
+                       Source="Assets/AppLogo.png" 
+                       Width="100" 
+                       Height="100" 
+                       Margin="0,0,0,10"/>
+
+                <TextBlock Text="OVK Music" 
+                          FontSize="24" 
+                          HorizontalAlignment="Center" 
+                          Margin="0,0,0,20"
+                          Foreground="{ThemeResource TextBrush}"/>
+
+                <ComboBox x:Name="InstanceComboBox" 
+                         Header="Выберите инстанс:"
+                         HorizontalAlignment="Stretch"
+                         Margin="0,0,0,10"
+                         BorderBrush="{ThemeResource BorderBrush}">
+                    <ComboBoxItem Content="ovk.to"/>
+                    <ComboBoxItem Content="vepurovk.xyz"/>
+                </ComboBox>
+
+                <TextBox x:Name="LoginTextBox" 
+                        Header="Логин:"
+                        PlaceholderText="Введите логин"
+                        Margin="0,0,0,10"
+                        BorderBrush="{ThemeResource BorderBrush}"/>
+
+                <PasswordBox x:Name="PasswordBox" 
+                           Header="Пароль:"
+                           PlaceholderText="Введите пароль"
+                           Margin="0,0,0,10"
+                           BorderBrush="{ThemeResource BorderBrush}"/>
+
+                <!-- 2FA секция -->
+                <Button x:Name="Show2FAButton"
+                        Content="У меня включена 2FA"
+                        HorizontalAlignment="Stretch"
+                        Click="Show2FAButton_Click"
+                        Margin="0,0,0,10"
+                        Visibility="Collapsed"/>
+
+                <TextBox x:Name="CodeTextBox"
+                        Header="Код подтверждения:"
+                        PlaceholderText="Введите код 2FA"
+                        Margin="0,0,0,10"
+                        Visibility="Collapsed"
+                        BorderBrush="{ThemeResource BorderBrush}"/>
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button x:Name="LoginButton" 
+                            Content="Войти"
+                            HorizontalAlignment="Stretch"
+                            Click="LoginButton_Click"
+                            Margin="0,0,10,0"/>
+
+                    <Button x:Name="RegisterButton" 
+                            Content="Регистрация"
+                            Grid.Column="1"
+                            Click="RegisterButton_Click"/>
+                </Grid>
+
+                <TextBlock x:Name="StatusTextBlock"
+                          Margin="0,10,0,0"
+                          TextWrapping="Wrap"
+                          HorizontalAlignment="Center"
+                          Foreground="{ThemeResource TextBrush}"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>
