@@ -14,6 +14,10 @@ using Windows.Media;
 using System.Threading.Tasks;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Controls.Primitives;
+using System.Collections.ObjectModel;
+using Windows.ApplicationModel.DataTransfer;
+using System.Linq;
+
 
 
 
@@ -43,6 +47,8 @@ namespace OVK_Music
 
         private bool isCustomSliderDragging = false;
         private double sliderWidth = 0;
+
+        private AudioItem selectedTrackForMenu;
 
         public AudioListPage()
         {
@@ -96,6 +102,10 @@ namespace OVK_Music
         {
             base.OnNavigatedFrom(e);
 
+            // Отписываемся от обработчика DataRequested
+            DataTransferManager dataTransferManager = DataTransferManager.GetForCurrentView();
+            dataTransferManager.DataRequested -= DataTransferManager_DataRequested;
+
             BackgroundMediaPlayer.Current.CurrentStateChanged -= BgPlayer_CurrentStateChanged;
 
             if (AudioPlayerManager.CurrentAudioPlayerPage == this)
@@ -141,6 +151,32 @@ namespace OVK_Music
 
             try
             {
+
+                // Добавляем отладочную информацию для каждого трека
+                foreach (var track in audioList)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Загруженный трек: {track.Artist} - {track.Title}");
+                    System.Diagnostics.Debug.WriteLine($"   Id: {track.Id}, OwnerId: {track.OwnerId}, UniqueId: {track.UniqueId ?? "null"}");
+
+                    // Пытаемся распарсить UniqueId
+                    if (!string.IsNullOrEmpty(track.UniqueId))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"   Анализ UniqueId: {track.UniqueId}");
+
+                        // Проверяем, может ли UniqueId быть base64-строкой
+                        try
+                        {
+                            byte[] data = Convert.FromBase64String(track.UniqueId);
+                            string decodedString = System.Text.Encoding.UTF8.GetString(data);
+                            System.Diagnostics.Debug.WriteLine($"   Base64 декодирование: {decodedString}");
+                        }
+                        catch
+                        {
+                            System.Diagnostics.Debug.WriteLine("   Не является валидной Base64-строкой");
+                        }
+                    }
+                }
+
                 var response = await httpClient.GetAsync(requestUrl);
                 string jsonResponse = await response.Content.ReadAsStringAsync();
                 JsonObject rootObject = JsonObject.Parse(jsonResponse);
@@ -673,6 +709,387 @@ namespace OVK_Music
                 TotalTimeTextBlock.Text = "00:00";
                 UpdateCustomSliderUI(0);
             });
+        }
+
+        // Обработчик долгого нажатия на элементе списка
+        private void AudioListView_Holding(object sender, HoldingRoutedEventArgs e)
+        {
+            if (e.HoldingState == Windows.UI.Input.HoldingState.Started)
+            {
+                FrameworkElement trackElement = e.OriginalSource as FrameworkElement;
+                while (trackElement != null && !(trackElement.DataContext is AudioItem))
+                {
+                    trackElement = VisualTreeHelper.GetParent(trackElement) as FrameworkElement;
+                }
+
+                if (trackElement != null)
+                {
+                    // Сохраняем выбранный трек в глобальной переменной
+                    selectedTrackForMenu = trackElement.DataContext as AudioItem;
+
+                    // Показываем меню в позиции долгого нажатия
+                    TrackContextMenu.ShowAt(trackElement);
+                    e.Handled = true;
+                }
+            }
+        }
+
+        // Обработчик клика правой кнопкой мыши
+        private void AudioListView_RightTapped(object sender, RightTappedRoutedEventArgs e)
+        {
+            FrameworkElement trackElement = e.OriginalSource as FrameworkElement;
+            while (trackElement != null && !(trackElement.DataContext is AudioItem))
+            {
+                trackElement = VisualTreeHelper.GetParent(trackElement) as FrameworkElement;
+            }
+
+            if (trackElement != null)
+            {
+                // Сохраняем выбранный трек в глобальной переменной
+                selectedTrackForMenu = trackElement.DataContext as AudioItem;
+
+                // Показываем меню в позиции клика
+                TrackContextMenu.ShowAt(trackElement);
+                e.Handled = true;
+            }
+        }
+
+        // Обработчик нажатия на пункт меню "Удалить"
+        private async void DeleteTrackMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Используем сохраненный трек из глобальной переменной
+                if (selectedTrackForMenu == null) return;
+
+                // Запрашиваем подтверждение удаления
+                MessageDialog confirmDialog = new MessageDialog(
+                    $"Вы уверены, что хотите убрать трек \"{selectedTrackForMenu.Artist} - {selectedTrackForMenu.Title}\" из своей коллекции?",
+                    "Удаление трека");
+
+                confirmDialog.Commands.Add(new UICommand("Убрать"));
+                confirmDialog.Commands.Add(new UICommand("Отмена"));
+
+                IUICommand result = await confirmDialog.ShowAsync();
+
+                if (result.Label == "Убрать")
+                {
+                    // Сохраняем копию трека для использования после удаления
+                    AudioItem trackToDelete = selectedTrackForMenu;
+
+                    // Удаляем трек из коллекции через API
+                    bool success = await DeleteTrackAsync(trackToDelete);
+
+                    if (success)
+                    {
+                        // Непосредственно удаляем трек из локального списка
+                        audioList.Remove(trackToDelete);
+
+                        // Обновляем отображение
+                        AudioListView.ItemsSource = null;
+                        AudioListView.ItemsSource = audioList;
+
+                        // Выводим сообщение об успешном удалении
+                        MessageDialog successDialog = new MessageDialog($"Трек \"{trackToDelete.Artist} - {trackToDelete.Title}\" убран из вашей коллекции");
+                        await successDialog.ShowAsync();
+                    }
+
+                    // Очищаем выбранный трек
+                    selectedTrackForMenu = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Ошибка при удалении трека: {ex.Message}");
+                selectedTrackForMenu = null;
+            }
+        }
+
+        // Обработчик нажатия на пункт меню "Поделиться"
+        private void ShareTrackMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Используем сохраненный трек из глобальной переменной
+                if (selectedTrackForMenu == null) return;
+
+                // Сохраняем информацию о треке в локальные переменные, 
+                // чтобы избежать проблем с асинхронным обратным вызовом
+                string artist = selectedTrackForMenu.Artist ?? "";
+                string title = selectedTrackForMenu.Title ?? "";
+                string trackInfo = $"{artist} - {title}";
+
+                // Реализация функции поделиться
+                DataTransferManager dataTransferManager = DataTransferManager.GetForCurrentView();
+
+                // Отписываемся от существующих обработчиков, чтобы не было дублирования
+                dataTransferManager.DataRequested -= DataTransferManager_DataRequested;
+
+                // Добавляем обработчик с сохраненной информацией о треке
+                dataTransferManager.DataRequested += (s, args) => {
+                    DataRequest request = args.Request;
+                    if (request != null)
+                    {
+                        request.Data.SetText(trackInfo);
+                        request.Data.Properties.Title = "Поделиться треком";
+                        request.Data.Properties.Description = $"Трек: {trackInfo}";
+                    }
+                };
+
+                // Показываем интерфейс
+                DataTransferManager.ShowShareUI();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Ошибка при поделиться треком: {ex.Message}");
+            }
+
+            // Очищаем выбранный трек после запуска UI обмена,
+            // а не до его завершения
+            selectedTrackForMenu = null;
+        }
+
+
+        // Метод для удаления трека через API
+        private async Task<bool> DeleteTrackAsync(AudioItem track)
+        {
+            try
+            {
+                // Добавляем подробное логирование для диагностики
+                System.Diagnostics.Debug.WriteLine($"Удаление трека: Title={track.Title}, Artist={track.Artist}");
+                System.Diagnostics.Debug.WriteLine($"Id={track.Id}, OwnerId={track.OwnerId}, UniqueId={track.UniqueId ?? "null"}");
+
+                var localSettings = Windows.Storage.ApplicationData.Current.LocalSettings;
+                string accessToken = localSettings.Values["AccessToken"] as string;
+                object userIdObj = localSettings.Values["UserId"];
+                string instance = localSettings.Values["Instance"] as string;
+
+                if (string.IsNullOrEmpty(accessToken) || userIdObj == null || string.IsNullOrEmpty(instance))
+                {
+                    System.Diagnostics.Debug.WriteLine("Ошибка: отсутствуют данные авторизации");
+                    await new MessageDialog("Ошибка авторизации. Пожалуйста, войдите снова.").ShowAsync();
+                    return false;
+                }
+
+                int userId = Convert.ToInt32(userIdObj);
+                System.Diagnostics.Debug.WriteLine($"UserId из настроек: {userId}");
+
+                // Получаем ID и owner_id трека
+                int audioId = track.Id;
+                int ownerId = track.OwnerId;
+                string uniqueId = track.UniqueId ?? "";
+
+                // Если у трека нет owner_id или audio_id, попробуем получить его через audio.getById
+                if (ownerId == 0 || audioId == 0 || !string.IsNullOrEmpty(uniqueId))
+                {
+                    System.Diagnostics.Debug.WriteLine("Выполняем запрос audio.getById для получения правильных идентификаторов");
+
+                    // Формируем ID для аудио в формате owner_id_audio_id
+                    string audioIds = "";
+
+                    // Если у нас есть UniqueId, используем его
+                    if (!string.IsNullOrEmpty(uniqueId))
+                    {
+                        audioIds = uniqueId;
+                        System.Diagnostics.Debug.WriteLine($"Используем UniqueId: {uniqueId}");
+                    }
+                    // Если нет UniqueId, но есть ownerId и audioId, формируем ID вручную
+                    else if (ownerId != 0 && audioId != 0)
+                    {
+                        audioIds = $"{ownerId}_{audioId}";
+                        System.Diagnostics.Debug.WriteLine($"Формируем ID вручную: {audioIds}");
+                    }
+                    // Если ничего не подходит, пробуем использовать только audioId и userId
+                    else if (audioId != 0)
+                    {
+                        audioIds = $"{userId}_{audioId}";
+                        System.Diagnostics.Debug.WriteLine($"Используем userId и audioId: {audioIds}");
+                    }
+
+                    // Если не удалось сформировать ID, выходим с ошибкой
+                    if (string.IsNullOrEmpty(audioIds))
+                    {
+                        System.Diagnostics.Debug.WriteLine("Не удалось сформировать ID для аудио");
+                        await new MessageDialog("Невозможно удалить трек: отсутствуют необходимые идентификаторы.").ShowAsync();
+                        return false;
+                    }
+
+                    // Формируем URL запроса к API для получения информации о треке
+                    string getByIdUrl = $"https://{instance}/method/audio.getById?audios={audioIds}&access_token={accessToken}";
+                    System.Diagnostics.Debug.WriteLine($"Запрос audio.getById: {getByIdUrl.Replace(accessToken, "***")}");
+
+                    // Выполняем запрос
+                    try
+                    {
+                        var getByIdResponse = await httpClient.GetAsync(getByIdUrl);
+                        string getByIdJsonResponse = await getByIdResponse.Content.ReadAsStringAsync();
+                        System.Diagnostics.Debug.WriteLine($"Ответ audio.getById: {getByIdJsonResponse}");
+
+                        // Парсим ответ
+                        JsonObject getByIdObject = JsonObject.Parse(getByIdJsonResponse);
+
+                        // Проверяем на ошибки
+                        if (getByIdObject.ContainsKey("error"))
+                        {
+                            string errorMsg = "Неизвестная ошибка";
+
+                            if (getByIdObject.GetNamedObject("error").ContainsKey("error_msg"))
+                                errorMsg = getByIdObject.GetNamedObject("error").GetNamedString("error_msg");
+                            else if (getByIdObject.GetNamedObject("error").ContainsKey("error_code"))
+                                errorMsg = $"Код ошибки: {getByIdObject.GetNamedObject("error").GetNamedNumber("error_code")}";
+
+                            System.Diagnostics.Debug.WriteLine($"API вернул ошибку при audio.getById: {errorMsg}");
+                            await new MessageDialog("Ошибка при получении информации о треке: " + errorMsg).ShowAsync();
+                            return false;
+                        }
+
+                        // Получаем данные о треке
+                        if (getByIdObject.ContainsKey("response"))
+                        {
+                            JsonArray audioArray;
+
+                            // Проверяем тип response - может быть массивом напрямую или объектом с полем items
+                            if (getByIdObject.GetNamedValue("response").ValueType == JsonValueType.Array)
+                            {
+                                audioArray = getByIdObject.GetNamedArray("response");
+                            }
+                            else if (getByIdObject.GetNamedValue("response").ValueType == JsonValueType.Object &&
+                                     getByIdObject.GetNamedObject("response").ContainsKey("items"))
+                            {
+                                audioArray = getByIdObject.GetNamedObject("response").GetNamedArray("items");
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.WriteLine("Неизвестный формат ответа audio.getById");
+                                await new MessageDialog("Неизвестный формат ответа API при получении информации о треке.").ShowAsync();
+                                return false;
+                            }
+
+                            // Проверяем, что в массиве есть элементы
+                            if (audioArray.Count > 0)
+                            {
+                                JsonObject audioObject = audioArray.GetObjectAt(0);
+
+                                // Получаем owner_id и id
+                                if (audioObject.ContainsKey("owner_id") && audioObject.ContainsKey("id"))
+                                {
+                                    ownerId = (int)audioObject.GetNamedNumber("owner_id");
+                                    audioId = (int)audioObject.GetNamedNumber("id");
+
+                                    System.Diagnostics.Debug.WriteLine($"Получены правильные идентификаторы: owner_id={ownerId}, id={audioId}");
+                                }
+                                else
+                                {
+                                    System.Diagnostics.Debug.WriteLine("В ответе audio.getById отсутствуют owner_id или id");
+                                    await new MessageDialog("В ответе API отсутствуют необходимые идентификаторы.").ShowAsync();
+                                    return false;
+                                }
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.WriteLine("Ответ audio.getById не содержит треков");
+                                await new MessageDialog("Трек не найден на сервере.").ShowAsync();
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine("Ответ audio.getById не содержит поля response");
+                            await new MessageDialog("Некорректный ответ API при получении информации о треке.").ShowAsync();
+                            return false;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Ошибка при выполнении запроса audio.getById: {ex.Message}");
+                        await new MessageDialog("Произошла ошибка при получении информации о треке: " + ex.Message).ShowAsync();
+                        return false;
+                    }
+                }
+
+                // Проверяем, что у нас есть необходимые идентификаторы
+                if (ownerId == 0 || audioId == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine("После всех попыток не удалось получить owner_id или id");
+                    await new MessageDialog("Невозможно удалить трек: отсутствуют необходимые идентификаторы.").ShowAsync();
+                    return false;
+                }
+
+                // Формируем URL запроса к API для удаления трека
+                string requestUrl = $"https://{instance}/method/audio.delete?owner_id={ownerId}&audio_id={audioId}&access_token={accessToken}";
+
+                // Маскируем токен в логах
+                string logUrl = $"https://{instance}/method/audio.delete?owner_id={ownerId}&audio_id={audioId}&access_token=***";
+                System.Diagnostics.Debug.WriteLine($"Запрос на удаление трека: {logUrl}");
+
+                var response = await httpClient.GetAsync(requestUrl);
+                string jsonResponse = await response.Content.ReadAsStringAsync();
+
+                System.Diagnostics.Debug.WriteLine($"Ответ API на удаление: {jsonResponse}");
+
+                JsonObject rootObject = JsonObject.Parse(jsonResponse);
+
+                if (rootObject.ContainsKey("error"))
+                {
+                    string errorMsg = "Неизвестная ошибка";
+
+                    if (rootObject.GetNamedObject("error").ContainsKey("error_msg"))
+                        errorMsg = rootObject.GetNamedObject("error").GetNamedString("error_msg");
+                    else if (rootObject.GetNamedObject("error").ContainsKey("error_code"))
+                        errorMsg = $"Код ошибки: {rootObject.GetNamedObject("error").GetNamedNumber("error_code")}";
+
+                    System.Diagnostics.Debug.WriteLine($"API вернул ошибку: {errorMsg}");
+                    await new MessageDialog("Ошибка при удалении трека: " + errorMsg).ShowAsync();
+                    return false;
+                }
+
+                // Проверяем успешный результат
+                if (rootObject.ContainsKey("response"))
+                {
+                    var responseValue = rootObject.GetNamedValue("response");
+
+                    // В зависимости от формата ответа проверяем результат
+                    if (responseValue.ValueType == JsonValueType.Number && responseValue.GetNumber() == 1)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Успешное удаление трека: response=1 (число)");
+                        return true;
+                    }
+                    else if (responseValue.ValueType == JsonValueType.Boolean && responseValue.GetBoolean())
+                    {
+                        System.Diagnostics.Debug.WriteLine("Успешное удаление трека: response=true (булево)");
+                        return true;
+                    }
+                    else if (responseValue.ValueType == JsonValueType.String)
+                    {
+                        string responseStr = responseValue.GetString();
+                        bool success = responseStr == "1" || responseStr.ToLower() == "true";
+                        System.Diagnostics.Debug.WriteLine($"Успешное удаление трека: response={responseStr} (строка), результат: {success}");
+                        return success;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Неизвестный формат ответа: {responseValue.ValueType}");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("Ответ API не содержит поля response");
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Ошибка при выполнении API запроса audio.delete: {ex.Message}");
+                await new MessageDialog("Произошла ошибка при удалении трека: " + ex.Message).ShowAsync();
+                return false;
+            }
+        }
+
+        // Метод-заглушка для отписки (он не будет вызываться напрямую)
+        private void DataTransferManager_DataRequested(DataTransferManager sender, DataRequestedEventArgs args)
+        {
+            // Это только заглушка для отписки от события, реальный код в анонимном методе
         }
     }
 }

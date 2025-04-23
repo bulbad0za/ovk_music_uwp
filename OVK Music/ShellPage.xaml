@@ -43,7 +43,7 @@
                                                 <DiscreteObjectKeyFrame KeyTime="0" Value="{ThemeResource SystemControlHighlightListMediumBrush}"/>
                                             </ObjectAnimationUsingKeyFrames>
                                         </Storyboard>
-                                    </VisualState>  
+                                    </VisualState>
                                     <VisualState x:Name="Disabled">
                                         <Storyboard>
                                             <DoubleAnimation Storyboard.TargetName="ContentPresenter"
@@ -167,7 +167,14 @@
 
                     <!-- Верхняя панель -->
                     <Grid Grid.Row="0" Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}" Height="48">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
                         <Button x:Name="HamburgerButton"
+                                Grid.Column="0"
                                 Content="&#xE700;"
                                 FontFamily="Segoe MDL2 Assets"
                                 Width="48"
@@ -175,11 +182,23 @@
                                 Background="Transparent"
                                 Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                 Click="HamburgerButton_Click"/>
+
                         <TextBlock Text="OVK Music (beta)"
+                                Grid.Column="1"
                                 VerticalAlignment="Center"
-                                Margin="60,0,0,0"
+                                Margin="12,0,0,0"
                                 FontSize="20"
                                 Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"/>
+
+                        <Button x:Name="SearchButton"
+                                Grid.Column="2"
+                                Content="&#xE721;"
+                                FontFamily="Segoe MDL2 Assets"
+                                Width="48"
+                                Height="48"
+                                Background="Transparent"
+                                Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                Click="SearchButton_Click"/>
                     </Grid>
 
                     <!-- Фрейм для навигации -->

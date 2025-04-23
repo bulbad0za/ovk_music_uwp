@@ -17,9 +17,6 @@ using Windows.UI.Xaml.Navigation;
 
 namespace OVK_Music
 {
-    /// <summary>
-    /// Provides application-specific behavior to supplement the default Application class.
-    /// </summary>
     sealed partial class App : Application
     {
         public App()
@@ -38,7 +35,9 @@ namespace OVK_Music
             smtc.IsPauseEnabled = true;
             smtc.IsNextEnabled = true;
             smtc.IsPreviousEnabled = true;
-            smtc.ButtonPressed += Smtc_ButtonPressed;
+
+            // Удаление регистрации обработчика кнопок из App.xaml.cs
+            // smtc.ButtonPressed += Smtc_ButtonPressed;
         }
 
         private async void Player_CurrentStateChanged(MediaPlayer sender, object args)
@@ -52,55 +51,12 @@ namespace OVK_Music
                 });
         }
 
+        // Метод оставляем для совместимости, но он больше не будет вызываться
         private async void Smtc_ButtonPressed(SystemMediaTransportControls sender, SystemMediaTransportControlsButtonPressedEventArgs args)
         {
-            await Windows.ApplicationModel.Core.CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(
-                CoreDispatcherPriority.Normal, () =>
-                {
-                    switch (args.Button)
-                    {
-                        case SystemMediaTransportControlsButton.Play:
-                            BackgroundMediaPlayer.Current.Play();
-                            break;
-                        case SystemMediaTransportControlsButton.Pause:
-                            BackgroundMediaPlayer.Current.Pause();
-                            break;
-                        case SystemMediaTransportControlsButton.Next:
-                            {
-                                IAudioPlayerPage currentAudioPage = AudioListPage.CurrentAudioPlayerPage;
-                                if (currentAudioPage == null)
-                                {
-                            // Если AudioListPage не активна, можно попробовать PlaylistTracksPage
-                            // Например, если вы реализовали аналогичное свойство там:
-                            // currentAudioPage = PlaylistTracksPage.CurrentAudioPlayerPage;
-                        }
-                                if (currentAudioPage != null)
-                                {
-                                    currentAudioPage.NextTrack();
-                                }
-                            }
-                            break;
-                        case SystemMediaTransportControlsButton.Previous:
-                            {
-                                IAudioPlayerPage currentAudioPage = AudioListPage.CurrentAudioPlayerPage;
-                                if (currentAudioPage == null)
-                                {
-                            // Попытка получить PlaylistTracksPage, если требуется
-                        }
-                                if (currentAudioPage != null)
-                                {
-                                    currentAudioPage.PreviousTrack();
-                                }
-                            }
-                            break;
-                    }
-                });
+            // Пустой метод - все управление перенесено в AudioPlayerService
         }
 
-        /// <summary>
-        /// Invoked when the application is launched normally by the end user.
-        /// </summary>
-        /// <param name="e">Details about the launch request and process.</param>
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
             // Получаем корневой фрейм
@@ -130,21 +86,11 @@ namespace OVK_Music
             Window.Current.Activate();
         }
 
-        /// <summary>
-        /// Invoked when Navigation to a certain page fails.
-        /// </summary>
-        /// <param name="sender">The Frame which failed navigation.</param>
-        /// <param name="e">Details about the navigation failure.</param>
         void OnNavigationFailed(object sender, NavigationFailedEventArgs e)
         {
             throw new Exception("Failed to load Page " + e.SourcePageType.FullName);
         }
 
-        /// <summary>
-        /// Invoked when application execution is being suspended.
-        /// </summary>
-        /// <param name="sender">The source of the suspend request.</param>
-        /// <param name="e">Details about the suspend request.</param>
         private void OnSuspending(object sender, SuspendingEventArgs e)
         {
             var deferral = e.SuspendingOperation.GetDeferral();

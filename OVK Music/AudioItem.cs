@@ -6,6 +6,7 @@ namespace OVK_Music
     {
         public string UniqueId { get; set; }
         public int Id { get; set; }
+        public int OwnerId { get; set; }
         public string Artist { get; set; }
         public string Title { get; set; }
         public int Duration { get; set; }
@@ -20,8 +21,8 @@ namespace OVK_Music
         {
             get
             {
-                TimeSpan ts = TimeSpan.FromSeconds(Duration);
-                return ts.ToString(@"mm\:ss");
+                TimeSpan time = TimeSpan.FromSeconds(Duration);
+                return time.ToString(@"mm\:ss");
             }
         }
     }

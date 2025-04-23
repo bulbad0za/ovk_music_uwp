@@ -20,6 +20,7 @@ namespace OVK_Music
             {
                 new MenuItem { Title = "Треки", IconGlyph = "\uE8D6", Tag = "tracks" },
                 new MenuItem { Title = "Плейлисты", IconGlyph = "\uE81E", Tag = "playlists" },
+                new MenuItem { Title = "Поиск", IconGlyph = "\uE721", Tag = "search" },
                 new MenuItem { Title = "Настройки", IconGlyph = "\uE713", Tag = "settings" }
             };
             MenuListView.ItemsSource = items;
@@ -44,6 +45,12 @@ namespace OVK_Music
             MySplitView.IsPaneOpen = !MySplitView.IsPaneOpen;
         }
 
+        private void SearchButton_Click(object sender, RoutedEventArgs e)
+        {
+            ContentFrame.Navigate(typeof(SearchPage));
+            MySplitView.IsPaneOpen = false;
+        }
+
         private void MenuListView_ItemClick(object sender, ItemClickEventArgs e)
         {
             var item = e.ClickedItem as MenuItem;
@@ -54,6 +61,9 @@ namespace OVK_Music
                     break;
                 case "playlists":
                     ContentFrame.Navigate(typeof(PlaylistsPage));
+                    break;
+                case "search":
+                    ContentFrame.Navigate(typeof(SearchPage));
                     break;
                 case "settings":
                     ContentFrame.Navigate(typeof(SettingsPage));
