@@ -70,7 +70,7 @@ namespace OVK_Music
                     break;
 
                 case "about":
-                    string aboutText = "OVK Music\nВерсия: 0.1.2\n\nЭто приложение создано для прослушивания музыки из OpenVK-подобных инстанций. я сосал\n\nby Loroteam <3";
+                    string aboutText = "OVK Music\nВерсия: 0.1.2\n\nЭто приложение создано для прослушивания музыки из OpenVK-подобных инстанций и пока что находится в бета тестировании.\n\nby Loroteam <3";
                     var dialog = new MessageDialog(aboutText, "О приложении");
                     await dialog.ShowAsync();
                     break;
