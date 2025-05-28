@@ -1,0 +1,231 @@
+﻿<Page
+    x:Class="OVK_Music.SearchPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:OVK_Music"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid.Resources>
+            <!-- Определение контекстного меню для использования в ListView -->
+            <MenuFlyout x:Name="TrackContextMenu">
+                <MenuFlyoutItem Text="Добавить в мою коллекцию" Click="AddTrackMenuItem_Click"/>
+                <MenuFlyoutItem Text="Поделиться" Click="ShareTrackMenuItem_Click"/>
+            </MenuFlyout>
+        </Grid.Resources>
+
+        <!-- Поисковая панель -->
+        <Grid Grid.Row="0" Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <AutoSuggestBox x:Name="SearchBox" 
+                        PlaceholderText="Поиск музыки..." 
+                        QuerySubmitted="SearchBox_QuerySubmitted"
+                        QueryIcon="Find"
+                        TextChanged="SearchBox_TextChanged"
+                        SuggestionChosen="SearchBox_SuggestionChosen"
+                        Margin="10"
+                        Grid.Column="0"/>
+        </Grid>
+
+        <!-- Область результатов -->
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Статус поиска -->
+            <TextBlock x:Name="StatusTextBlock"
+                       Grid.Row="0"
+                       Margin="12,8"
+                       Text="Введите запрос для поиска"
+                       Style="{ThemeResource BodyTextBlockStyle}"/>
+
+            <!-- Индикатор загрузки -->
+            <ProgressRing x:Name="LoadingRing" 
+                          IsActive="False" 
+                          Width="40" 
+                          Height="40"
+                          Grid.Row="1"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          Visibility="Collapsed"/>
+
+            <!-- Список результатов -->
+            <ListView x:Name="SearchResultsListView"
+              Grid.Row="1"
+              Margin="0"
+              IsItemClickEnabled="True"
+              ItemClick="SearchResultsListView_ItemClick"
+              SelectionMode="Single"
+              HorizontalContentAlignment="Stretch"
+              Holding="SearchResultsListView_Holding" 
+              RightTapped="SearchResultsListView_RightTapped">
+                <!-- Заставляем каждый контейнер элемента растягиваться -->
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="local:AudioItem">
+                        <Grid Margin="5">
+                            <Grid.ColumnDefinitions>
+                                <!-- Левая колонка занимает всё доступное пространство -->
+                                <ColumnDefinition Width="*"/>
+                                <!-- Правая колонка подбирается по содержимому -->
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- Левая часть с информацией о треке -->
+                            <StackPanel Grid.Column="0" Orientation="Vertical">
+                                <TextBlock Text="{x:Bind Title}" 
+                               FontWeight="Bold" 
+                               TextWrapping="Wrap"/>
+                                <TextBlock Text="{x:Bind Artist}" 
+                               TextWrapping="Wrap"/>
+                            </StackPanel>
+
+                            <Button Grid.Column="1" 
+                    Margin="5,0,10,0"
+                    Background="Transparent"
+                    Click="SaveTrackButton_Click"
+                    Tag="{Binding}">
+                                <FontIcon FontFamily="Segoe MDL2 Assets" 
+                         Glyph="&#xE710;" 
+                         FontSize="16" 
+                         Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"/>
+                            </Button>
+                            
+                            <!-- Правая часть с длительностью, выровненная по правому краю -->
+                            <TextBlock Grid.Column="2"
+                           Text="{x:Bind DurationFormatted}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Right"
+                           FontSize="14"
+                           Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
+
+        <!-- Панель управления плеером -->
+        <StackPanel Grid.Row="2" Orientation="Vertical" Margin="0" Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}">
+            <!-- Текущий трек -->
+            <StackPanel Grid.Column="0" Orientation="Vertical">
+                <TextBlock x:Name="NowPlayingTextBlock"
+                           Text=""
+                           FontWeight="Bold"
+                           FontSize="16"
+                           Margin="0,10,0,0"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"/>
+
+                <!-- Оборачиваем название трека в ScrollViewer для прокрутки -->
+                <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                    <TextBlock x:Name="NowPlayingInfoTextBlock"
+                               Text="Ничего не воспроизводится"
+                               FontSize="16"
+                               Margin="10"
+                               TextWrapping="NoWrap"
+                               TextAlignment="Center"
+                               Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"/>
+                </ScrollViewer>
+            </StackPanel>
+
+            <!-- Кнопки управления -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <!-- Кнопка "Шафл" -->
+                <Button x:Name="ShuffleButton" Click="ShuffleButton_Click" Margin="5" Background="Transparent">
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE8B1;" Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}" FontSize="24"/>
+                </Button>
+
+                <!-- Кнопка "Предыдущий" -->
+                <Button x:Name="PrevButton" Click="PrevButton_Click" Margin="5" Background="Transparent">
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE892;" Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}" FontSize="24"/>
+                </Button>
+
+                <!-- Кнопка "Play/Pause" -->
+                <Button x:Name="PlayPauseButton" Click="PlayPauseButton_Click" Margin="5" Background="Transparent">
+                    <FontIcon x:Name="PlayPauseIcon" FontFamily="Segoe MDL2 Assets" Glyph="&#xE768;" Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}" FontSize="24"/>
+                </Button>
+
+                <!-- Кнопка "Следующий" -->
+                <Button x:Name="NextButton" Click="NextButton_Click" Margin="5" Background="Transparent">
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE893;" Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}" FontSize="24"/>
+                </Button>
+
+                <!-- Кнопка "Повтор" -->
+                <Button x:Name="RepeatButton" Click="RepeatButton_Click" Margin="5" Background="Transparent">
+                    <FontIcon x:Name="RepeatIcon" FontFamily="Segoe MDL2 Assets" Glyph="&#xE8EE;" Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}" FontSize="24"/>
+                </Button>
+            </StackPanel>
+
+            <Grid Margin="10,0,10,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Текущая позиция -->
+                <TextBlock x:Name="CurrentTimeTextBlock" 
+                    Text="00:00" 
+                    VerticalAlignment="Center"
+                    Margin="0,0,15,5"
+                    Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"/>
+
+                <!-- Custom Slider с системными цветами -->
+                <Grid Grid.Column="1" Margin="0,15,0,15" x:Name="CustomSliderGrid" Background="Transparent"
+                    PointerPressed="CustomSlider_PointerPressed" 
+                    PointerReleased="CustomSlider_PointerReleased"
+                    PointerMoved="CustomSlider_PointerMoved">
+
+                    <!-- Фоновая дорожка -->
+                    <Rectangle Height="4" Fill="{ThemeResource SystemControlForegroundBaseLowBrush}" VerticalAlignment="Center"/>
+
+                    <!-- Прогресс-трек (акцентный цвет системы) -->
+                    <Rectangle x:Name="ProgressRect" Height="4" Fill="{ThemeResource SystemAccentColor}" 
+                            HorizontalAlignment="Left" Width="0" VerticalAlignment="Center"/>
+
+                    <!-- Ползунок (акцентный цвет системы) -->
+                    <Ellipse x:Name="SliderThumb" 
+                        Width="16" Height="16" 
+                        Fill="{ThemeResource SystemAccentColor}"
+                        HorizontalAlignment="Left" 
+                        Margin="-8,0,0,0" 
+                        VerticalAlignment="Center"
+                        Canvas.ZIndex="10"/>
+
+                    <!-- Скрытый слайдер -->
+                    <Slider x:Name="ProgressSlider" Visibility="Collapsed" 
+                            Minimum="0" Maximum="100" Value="0"/>
+                </Grid>
+
+
+                <!-- Общая длительность справа -->
+                <TextBlock x:Name="TotalTimeTextBlock" 
+                    Grid.Column="2"
+                    Text="00:00"
+                    VerticalAlignment="Center"
+                    Margin="15,0,0,5"
+                    Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"/>
+            </Grid>
+        </StackPanel>
+    </Grid>
+</Page>
