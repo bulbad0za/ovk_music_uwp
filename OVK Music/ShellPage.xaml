@@ -128,32 +128,79 @@
                    OpenPaneLength="220">
             <SplitView.Pane>
                 <Border Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}" Padding="0,20,0,20">
-                    <!-- ListView для меню -->
-                    <ListView x:Name="MenuListView" 
-                        Background="Transparent"
-                        IsItemClickEnabled="True"
-                        SelectionMode="Single"
-                        ItemClick="MenuListView_ItemClick">
-                        <ListView.ItemTemplate>
-                            <DataTemplate x:DataType="local:MenuItem">
-                                <Grid Padding="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <FontIcon Glyph="{x:Bind IconGlyph}" 
-                                    FontSize="24" 
-                                    Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}" 
-                                    Margin="0,0,12,0"/>
-                                    <TextBlock Grid.Column="1" 
-                                    Text="{x:Bind Title}" 
-                                    VerticalAlignment="Center"
-                                    Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
-                                    FontSize="20"/>
-                                </Grid>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
+                    <!-- Используем Grid для размещения меню и профиля -->
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- ListView для меню -->
+                        <ListView x:Name="MenuListView" 
+                            Grid.Row="0"
+                            Background="Transparent"
+                            IsItemClickEnabled="True"
+                            SelectionMode="Single"
+                            ItemClick="MenuListView_ItemClick">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="local:MenuItem">
+                                    <Grid Padding="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="{x:Bind IconGlyph}" 
+                                        FontSize="24" 
+                                        Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}" 
+                                        Margin="0,0,12,0"/>
+                                        <TextBlock Grid.Column="1" 
+                                        Text="{x:Bind Title}" 
+                                        VerticalAlignment="Center"
+                                        Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                        FontSize="20"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+
+                        <!-- Профиль пользователя -->
+                        <Grid x:Name="UserProfilePanel" 
+                              Grid.Row="1" 
+                              Margin="12" 
+                              Padding="12" 
+                              BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}" 
+                              BorderThickness="0,1,0,0"
+                              Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Аватар -->
+                            <Ellipse Width="40" Height="40" Margin="0,0,12,0">
+                                <Ellipse.Fill>
+                                    <ImageBrush x:Name="UserAvatarBrush" Stretch="UniformToFill" />
+                                </Ellipse.Fill>
+                            </Ellipse>
+
+                            <!-- Информация о пользователе -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock x:Name="UserNameTextBlock" 
+                                           Text="Имя пользователя" 
+                                           FontSize="16"
+                                           TextWrapping="NoWrap"
+                                           TextTrimming="CharacterEllipsis" />
+                                <StackPanel Orientation="Horizontal">
+                                    <FontIcon Glyph="&#xE8D6;" FontSize="12" Margin="0,0,4,0"
+                                              Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                                    <TextBlock x:Name="TracksCountTextBlock" 
+                                               Text="0 треков" 
+                                               FontSize="12" 
+                                               Foreground="{ThemeResource SystemControlForegroundBaseMediumBrush}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
                 </Border>
             </SplitView.Pane>
 

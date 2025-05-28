@@ -105,6 +105,7 @@
     <Compile Include="AudioItem.cs" />
     <Compile Include="AudioPlayerService.cs" />
     <Compile Include="CoverUrlConverter.cs" />
+    <Compile Include="EventManager.cs" />
     <Compile Include="IAudioPlayerPage.cs" />
     <Compile Include="IntToTrackCountConverter.cs" />
     <Compile Include="MenuItem.cs" />
@@ -132,6 +133,7 @@
       <DependentUpon>StubPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="TimeSpanConverter.cs" />
+    <Compile Include="UserProfile.cs" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">

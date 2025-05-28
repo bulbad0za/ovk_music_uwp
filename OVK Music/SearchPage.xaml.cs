@@ -889,6 +889,9 @@ namespace OVK_Music
 
                 if (result)
                 {
+                    // Уведомляем об изменении коллекции треков (добавлен 1 трек)
+                    EventManager.OnTracksCollectionChanged(0, "add");
+
                     // При успехе показываем зеленую галочку
                     button.Content = new FontIcon
                     {
@@ -1105,6 +1108,9 @@ namespace OVK_Music
 
                 if (success)
                 {
+                    // Уведомляем об изменении коллекции треков (добавлен 1 трек)
+                    EventManager.OnTracksCollectionChanged(0, "add");
+
                     // Выводим сообщение об успешном добавлении
                     MessageDialog successDialog = new MessageDialog($"Трек \"{selectedTrackForMenu.Artist} - {selectedTrackForMenu.Title}\" добавлен в вашу коллекцию");
                     await successDialog.ShowAsync();

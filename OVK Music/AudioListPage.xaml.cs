@@ -18,10 +18,6 @@ using System.Collections.ObjectModel;
 using Windows.ApplicationModel.DataTransfer;
 using System.Linq;
 
-
-
-
-
 namespace OVK_Music
 {
     public sealed partial class AudioListPage : Page, IAudioPlayerPage
@@ -788,6 +784,9 @@ namespace OVK_Music
                         // Обновляем отображение
                         AudioListView.ItemsSource = null;
                         AudioListView.ItemsSource = audioList;
+
+                        // Уведомляем об изменении коллекции треков
+                        EventManager.OnTracksCollectionChanged(0, "remove");
 
                         // Выводим сообщение об успешном удалении
                         MessageDialog successDialog = new MessageDialog($"Трек \"{trackToDelete.Artist} - {trackToDelete.Title}\" убран из вашей коллекции");
